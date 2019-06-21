@@ -1,6 +1,8 @@
 package com.example.scan.scanzxing;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -28,7 +30,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final String DECODED_BITMAP_KEY = "codedBitmap";
     private static final int REQUEST_CODE_SCAN = 0x0000;
 
-    private Button btn_scan;
     private TextView tv_scanResult;
 
     @Override
@@ -36,24 +37,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         tv_scanResult = (TextView) findViewById(R.id.tv_scanResult);
-        btn_scan = (Button) findViewById(R.id.btn_scan);
+        Button btn_scan = (Button) findViewById(R.id.btn_scan);
         btn_scan.setOnClickListener(this);
     }
 
 
     @Override
     public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.btn_scan:
-                //动态权限申请
-                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA}, 1);
-                } else {
-                    goScan();
-                }
-                break;
-            default:
-                break;
+        if (v.getId() == R.id.btn_scan) {//动态权限申请
+            if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA}, 1);
+            } else {
+                goScan();
+            }
         }
     }
 
@@ -67,19 +63,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case 1:
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    goScan();
-                } else {
-                    Toast.makeText(this, "你拒绝了权限申请，可能无法打开相机扫码哟！", Toast.LENGTH_SHORT).show();
-                }
-                break;
-            default:
+        if (requestCode == 1) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                goScan();
+            } else {
+                Toast.makeText(this, "你拒绝了权限申请，可能无法打开相机扫码哟！", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
 
+    @SuppressLint("SetTextI18n")
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -103,16 +97,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * 发送请求
      */
     private void postRequest(String content) {
+        final ProgressDialog dialog = new ProgressDialog(this);
+        dialog.setMessage("加载中...");
+        dialog.show();
         RequestParams params = new RequestParams(content);
         params.addBodyParameter("deviceId", DeviceUtils.getIMEI(this, 1));
         x.http().post(params, new Callback.CacheCallback<String>() {
             @Override
             public void onSuccess(String result) {
+                dialog.dismiss();
                 Toast.makeText(MainActivity.this, "成功", Toast.LENGTH_LONG).show();
             }
 
             @Override
             public void onError(Throwable ex, boolean isOnCallback) {
+                dialog.dismiss();
                 Toast.makeText(MainActivity.this, "成功", Toast.LENGTH_LONG).show();
             }
 
